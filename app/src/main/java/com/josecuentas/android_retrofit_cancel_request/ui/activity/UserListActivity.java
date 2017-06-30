@@ -1,9 +1,11 @@
 package com.josecuentas.android_retrofit_cancel_request.ui.activity;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -20,7 +22,7 @@ import retrofit2.Response;
 public class UserListActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
-    private static final int pageSize = 2;
+    private static final int pageSize = 10;
     private static final int offSet = 1;
     private static final String props = "name,lastname";
 
@@ -43,6 +45,22 @@ public class UserListActivity extends AppCompatActivity {
         mUserAdapter = new UserAdapter();
         mRecyclerView.setLayoutManager(new LinearLayoutManager(UserListActivity.this));
         mRecyclerView.setAdapter(mUserAdapter);
+
+        ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN , ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+            @Override public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+                int fromPosition = viewHolder.getAdapterPosition();
+                int toPosition = target.getAdapterPosition();
+                mUserAdapter.notifyItemMoved(fromPosition, toPosition);
+                return true;
+            }
+
+            @Override public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+                mUserAdapter.changeViewDelete(viewHolder.getAdapterPosition());
+            }
+        };
+
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleCallback);
+        itemTouchHelper.attachToRecyclerView(mRecyclerView);
     }
 
     private void getUser() {
@@ -67,4 +85,7 @@ public class UserListActivity extends AppCompatActivity {
         });
     }
 
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+    }
 }
