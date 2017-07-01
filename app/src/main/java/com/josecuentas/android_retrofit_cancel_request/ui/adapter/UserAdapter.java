@@ -1,5 +1,6 @@
 package com.josecuentas.android_retrofit_cancel_request.ui.adapter;
 
+import android.support.v4.view.ViewCompat;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
