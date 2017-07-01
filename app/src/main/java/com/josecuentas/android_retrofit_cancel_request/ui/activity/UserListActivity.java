@@ -74,7 +74,21 @@ public class UserListActivity extends AppCompatActivity {
                 initiated = true;
             }
 
+            @Override
+            public int getMovementFlags(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
+                final int dragFlags = ItemTouchHelper.UP | ItemTouchHelper.DOWN;
+                final int swipeFlags = ItemTouchHelper.START | ItemTouchHelper.END;
+                if (viewHolder.getItemViewType() == UserAdapter.VIEW_TYPE_ROW_DELETE) {
+                    return ItemTouchHelper.ACTION_STATE_IDLE;
+                } else {
+                    return makeMovementFlags(dragFlags, swipeFlags);
+                }
+            }
+
             @Override public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+                if (viewHolder instanceof UserAdapter.UserDeleteViewHolder) {
+                    return false;
+                }
                 int fromPosition = viewHolder.getAdapterPosition();
                 int toPosition = target.getAdapterPosition();
                 mUserAdapter.notifyItemMoved(fromPosition, toPosition);
