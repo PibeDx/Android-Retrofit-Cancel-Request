@@ -2,14 +2,19 @@ package com.josecuentas.android_retrofit_cancel_request.ui.activity;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Picture;
 import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.res.ResourcesCompat;
 import android.support.v4.graphics.BitmapCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -61,16 +66,21 @@ public class UserListActivity extends AppCompatActivity {
         ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN , ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
 
             // we want to cache these and not allocate anything repeatedly in the onChildDraw method
-            Drawable background;
-            Drawable xMark;
-            int xMarkMargin;
+            Drawable mBackground;
+            Bitmap mMark;
+            Paint mPaintIcon;
+            int mMarkMargin;
+
             boolean initiated;
 
             private void init() {
-                background = ContextCompat.getDrawable(mRecyclerView.getContext(), R.color.row_user);
-                xMark = ContextCompat.getDrawable(mRecyclerView.getContext(), R.drawable.ic_clear_24dp);
-                xMark.setColorFilter(Color.BLUE, PorterDuff.Mode.SRC_ATOP);
-                xMarkMargin = (int) mRecyclerView.getContext().getResources().getDimension(R.dimen.ic_clear_margin);
+                mBackground = ContextCompat.getDrawable(UserListActivity.this, R.color.row_user);
+                mMark = BitmapFactory.decodeResource(getResources(),R.drawable.ic_clear_24dp);
+                int mColorIcon = ContextCompat.getColor(UserListActivity.this, android.R.color.black);
+                mPaintIcon = new Paint();
+                mPaintIcon.setColorFilter(new PorterDuffColorFilter(mColorIcon, PorterDuff.Mode.SRC_IN));
+                mMarkMargin = (int) UserListActivity.this.getResources().getDimension(R.dimen.ic_clear_margin);
+
                 initiated = true;
             }
 
@@ -101,14 +111,9 @@ public class UserListActivity extends AppCompatActivity {
 
             @Override public void onChildDraw(Canvas c, RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
                 View itemView = viewHolder.itemView;
-                Log.d(TAG, " ");
-                Log.d(TAG, " ");
-                Log.d(TAG, " ");
-                Log.d(TAG, " ");
-                Log.d(TAG, " ");
-                Log.d(TAG, " ");
-                //region Transparencia
-                int width = itemView.getRight();
+
+                //region transparencia al hacer drag en el item
+                int width = itemView.getWidth();
                 float positionWidth = width - Math.abs(dX);
                 float porcentaje = positionWidth * 100 / width;
                 itemView.setAlpha(porcentaje / 100);
@@ -123,38 +128,45 @@ public class UserListActivity extends AppCompatActivity {
                 if (!initiated) {
                     init();
                 }
-                Log.d(TAG, "onChildDraw: dX: " + dX);
-                Log.d(TAG, "onChildDraw: dY: " + dY);
+                int itemHeight = itemView.getHeight();
+
+                int itemLeft = itemView.getLeft();
+                int itemRight = itemView.getRight();
+                int itemTop = itemView.getTop();
+                int itemBottom = itemView.getBottom();
+
                 // draw red background
-                if (dX < 0) {
-                    background.setBounds(itemView.getRight() + (int) dX, itemView.getTop(), itemView.getRight(), itemView.getBottom());
-                    background.draw(c);
-                } else {
-                    background.setBounds(itemView.getLeft(), itemView.getTop(), itemView.getLeft() + (int) dX, itemView.getBottom());
-                    background.draw(c);
+                if (dX > 1) { //drag right
+                    mBackground.setBounds(itemLeft, itemTop, itemLeft + (int) dX, itemBottom);
+                    mBackground.draw(c);
+                } else { //drag left
+                    mBackground.setBounds(itemRight + (int) dX, itemTop, itemRight, itemBottom);
+                    mBackground.draw(c);
                 }
 
+                Bitmap base = Bitmap.createBitmap(itemRight, itemHeight, Bitmap.Config.ARGB_8888);
+                Canvas canvas = new Canvas(base);
+                if (dX > 1) { //drag right
+                    //region draw mark
+                    int leftIcon = itemLeft + mMarkMargin;
+                    int topIcon = (itemHeight - mMark.getHeight()) / 2;
 
-                if (dX != 0) {
-                    // draw x mark
-                    int itemHeight = itemView.getBottom() - itemView.getTop();
-                    int intrinsicWidth = xMark.getIntrinsicWidth();
-                    int intrinsicHeight = xMark.getIntrinsicWidth();
+                    canvas.drawBitmap(mMark, leftIcon, topIcon, mPaintIcon);
 
-                    Log.d(TAG, "onChildDraw: getTop: " + itemView.getTop());
-                    Log.d(TAG, "onChildDraw: getBottom: " + itemView.getBottom());
-                    Log.d(TAG, "onChildDraw: itemHeight: " + itemHeight);
-                    Log.d(TAG, "onChildDraw: intrinsicWidth: " + intrinsicWidth);
-                    Log.d(TAG, "onChildDraw: intrinsicHeight: " + intrinsicHeight);
+                    Bitmap bitmap = Bitmap.createBitmap(base, 0, 0, (int) Math.abs(dX), itemHeight);
+                    c.drawBitmap(bitmap, itemLeft, itemTop, new Paint());
+                    //endregion
+                } else if (dX < -1) { //drag left
+                    //region draw mark
+                    int leftIcon = itemRight - mMarkMargin - mMark.getWidth();
+                    int topIcon = (itemHeight - mMark.getHeight()) / 2;
 
-                    int xMarkLeft = itemView.getRight() - xMarkMargin - intrinsicWidth;
-                    int xMarkRight = itemView.getRight() - xMarkMargin;
-                    int xMarkTop = itemView.getTop() + (itemHeight - intrinsicHeight)/2;
-                    int xMarkBottom = xMarkTop + intrinsicHeight;
-                    xMark.setBounds(xMarkLeft, xMarkTop, xMarkRight, xMarkBottom);
-                    xMark.draw(c);
+                    canvas.drawBitmap(mMark, leftIcon, topIcon, mPaintIcon);
+
+                    Bitmap bitmap = Bitmap.createBitmap(base, itemRight - (int) Math.abs(dX), 0, (int) Math.abs(dX), itemHeight);
+                    c.drawBitmap(bitmap, itemRight - Math.abs(dX), itemTop, new Paint());
+                    //endregion
                 }
-
                 super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
             }
 
